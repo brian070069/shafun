@@ -8,8 +8,6 @@ const {
   loginValidationSchema,
 } = require("../Models/validationSchemas");
 
-const secretkey = process.env.JWTSECRET;
-
 const signUp = async (req, res, next) => {
   const { username, email, password } = req.body;
   const { error, value } = registerValidationSchema.validate(req.body);
@@ -27,8 +25,8 @@ const signUp = async (req, res, next) => {
 
     const hashedPassword = hashPassword(password);
     const newUser = new User({ username, email, password: hashedPassword });
-    const { password: p, ...rest } = newUser._doc;
-
+    const { password: p, betList, ...rest } = newUser._doc;
+    const secretkey = process.env.JWTSECRET;
     const accessToken = generateJwt(rest, secretkey, { expiresIn: "1h" });
     await newUser.save();
     res.cookie("accessToken", accessToken, { secure: true }).json(rest);
@@ -37,7 +35,7 @@ const signUp = async (req, res, next) => {
   }
 };
 
-const signIn = async (req, res) => {
+const signIn = async (req, res, next) => {
   const { email, password } = req.body;
   const { error, value } = loginValidationSchema.validate(req.body);
   if (error) {
@@ -56,7 +54,8 @@ const signIn = async (req, res) => {
       return next(customError(404, "wrong password"));
     }
 
-    const { password: p, ...rest } = user;
+    const { password: p, betList, ...rest } = user._doc;
+    const secretkey = process.env.JWTSECRET;
     const accessToken = generateJwt(rest, secretkey, { expiresIn: "30d" });
     res.cookie("accessToken", accessToken, { secure: true }).json(rest);
   } catch (error) {
